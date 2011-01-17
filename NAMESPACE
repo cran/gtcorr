@@ -1,0 +1,2 @@
+export(gtcorr.hierarchical, gtcorr.matrix)
+       
