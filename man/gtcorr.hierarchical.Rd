@@ -71,23 +71,21 @@ gtcorr.hierarchical(n, m = 1, p, sigma = 0, se = 1, sp = 1, arrangement
 }
 \references{
 Samuel D. Lendle, Michael Hudgens, and Bahjat F. Qaqish, "Group Testing
-for Case Identification with Correlated Responses" (October 2010). The
-University of North Carolina at Chapel Hill Department of Biostatistics
-Technical Report Series. Working Paper 16.
-http://biostats.bepress.com/uncbiostat/papers/art16
+for Case Identification with Correlated Responses" Submitted 2011.
+Biometrics.
 }
-\author{
+%\author{
 %%  ~~who you are~~
-}
-\note{
+%}
+%\note{
 %%  ~~further notes~~
-}
+%}
 
 %% ~Make other sections like Warning with \section{Warning }{....} ~
 
-\seealso{
+%\seealso{
 %% ~~objects to See Also as \code{\link{help}}, ~~~
-}
+%}
 \examples{
 ##Plot efficiencies of a Dorfman (2 stage hierarchical) algorithm 
 ##by cluster size and sigma
