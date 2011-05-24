@@ -151,6 +151,124 @@ prob.neg.h.random <- function(p, sigma, n, m, h, w, model, ...) {
   pr.v.t.0
 }
 
+gtcorr.hierarchical.user <- function(n,clusters,p,sigma=0,se=1,sp=1, model=c("beta-binomial", "Morel-Neerchal", "Madsen")){
+  if (any(c(p, sigma, se, sp)<0) || any(c(p, sigma, se, sp) >1)) {
+    stop("p, sigma, se, and sp should be between 0 and 1")
+  }
+  if (n[length(n)] != 1) {
+    n <- c(n,1)
+  }
+  if (length(n)==1) {
+    stop("The largest pool size should be greater than 1")
+  }
+  if (!all(n==as.integer(n))) {
+    stop("All elements of n should be integers")
+  }
+  if (!all(0==n[-length(n)]%%n[-1])) {
+    stop("n[s-1] should be divisible by n[s] for all s in 2:length(n)")
+  }
+
+  bad <- FALSE
+  l <- max(clusters)
+  if (l != as.integer(l)) bad <- TRUE
+  if (l < 1) bad <- TRUE
+  for (i in 1:l) {
+    if (!(i %in% clusters)) bad <- TRUE
+  }
+  if (bad) stop("clusters should be a vector of integers from 1 to the largest cluster number")
+
+  if (length(clusters) != n[1]) stop("clusters should have length n[1]")
+
+  if (length(p)==1) p <- rep(p, l)
+  if (length(p)!=l) stop("p should have length 1 or the largest cluster number")
+  if (length(sigma)==1) sigma <- rep(sigma, l)
+  if (length(sigma)!=l) stop("sigma should have length 1 or the largest cluster number")
+
+  model <- match.arg(model)
+  
+  h <- length(n)	# total number of stages (scalar)
+  n1 <- length(clusters)# total number of units (scalar)
+  w <- n1/n		# total number of possible pools in stage s (vector)
+  et <- 1		# expected number of tests at stage 1
+  for (ss in 2:h){	# cycle through stages. see Section 3.1 of revision.
+    summ <- 0
+    for (ii in 1:w[ss-1]) summ <- summ + gtcorr.h.prv(ii,ss-1,n,clusters,p,se,sp,sigma, model)
+    etss <- w[ss]/w[ss-1]*summ
+    et <- et + etss	# add number of tests expected at stage ss
+  }
+  eff <- et/n1	# final efficiency 
+}
+
+gtcorr.h.prv <- function(ii,ss,n,M,prev,se,sp,sigma, model){
+		# prob pool ii in stage ss tests positive. cf equation (4) and (5) of revision
+  ans.prv <- 0
+  if (ss==1){
+  # cf equation (4) revision
+    prv1iteq1 <- gtcorr.h.prvsiteq1(ii,1,n,M,prev,sigma, model)
+    ans.prv <- se*prv1iteq1 + (1-sp)*(1-prv1iteq1)
+  }
+  if (ss>1){		
+    # cf equation (5) of revision
+    pt <- gtcorr.h.prvsiteq1(ii,ss,n,M,prev,sigma, model)
+    ps <- c(1-pt,pt)
+    for (vv in 0:1) {
+      ans.prv <- ans.prv + se^vv * (1-sp)^(1-vv) * gtcorr.h.cp1(vv,ii,ss,n,M,prev,se,sp,sigma, model) * ps[vv+1]
+    }
+  }
+  ans.prv
+}	
+
+gtcorr.h.prvsiteq1 <- function(ii,ss,n,M,prev,sigma, model){	# equation (3) revision
+  # probability pool ii in stage ss is truly positive
+  # prev vector (of length l) of cluster specific prevalences
+  # msik vector (of length l) with number of units from cluster k in pool ii in stage ss
+  l <- length(prev)
+  msik <- matrix(NA,1,l)
+  lower <- n[ss]*(ii-1)+1	# first unit in pool ii in stage ss
+  upper <- lower+n[ss]-1
+  index <- lower:upper # units in pool ii in stage ss
+  for (kk in 1:l) msik[kk] <- sum(M[index]==kk)
+  myprod <- 1
+  for (kk in 1:l){
+    myprod <- myprod*prob.neg.clust(prev[kk], sigma[kk], msik[kk], model)
+  }
+  ans <- 1-myprod
+  ans
+}
+
+gtcorr.h.cp1 <- function(vv,ii,ss,n,M,prev,se,sp,sigma, model) {
+  # conditional probability in equation (5) of revision
+  # uses recursion
+  if (ss==2){		# eq (5.1) of revision
+    if (vv==1) ans <- se
+    if (vv==0){
+      ans <- 0
+      for (uu in 0:1) ans <- ans + se^uu * (1-sp)^(1-uu) * gtcorr.h.cpt(uu,ii,ss,n,M,prev,sigma, model)
+        # here cpt is conditional prob on right side of equation (5.1) of revision
+    }  
+  }
+  else{			# eq (5.2) of revision
+    iim1 <- ceiling(ii/(n[ss-1]/n[ss]))	# pool in stage ss-1 containing units from pool ii in stage ss
+    if (vv==1) ans <- se*gtcorr.h.cp1(1,iim1,ss-1,n,M,prev,se,sp,sigma, model)	# recursion
+    if (vv==0){
+      ans <- 0
+      for (uu in 0:1) ans <- ans + se^uu * (1-sp)^(1-uu) * gtcorr.h.cpt(uu,ii,ss,n,M,prev,sigma, model)* 
+        gtcorr.h.cp1(uu,iim1,ss-1,n,M,prev,sigma, model)	# recursion
+    }
+  }
+  ans
+} # end cp1	
+
+gtcorr.h.cpt <- function(uu,ii,ss,n,M,prev,sigma,model){
+		# conditional probability on right side of equation (5.1) and (5.2) of revision only involving truth
+  iim1 <- ceiling(ii/(n[ss-1]/n[ss]))	# pool in stage ss-1 containing units from pool ii in stage ss
+  num <- 1-gtcorr.h.prvsiteq1(iim1,ss-1,n,M,prev,sigma, model)
+  den <- 1-gtcorr.h.prvsiteq1(ii,ss,n,M,prev,sigma, model)
+  if (uu==0) ans1 <- num/den
+  else ans1 <- 1-num/den
+  ans1
+}
+
 
 ###End Hierarchical functions###
 
@@ -254,7 +372,62 @@ prob.neg.m.random <- function(p, sigma, r, c, m, model, ...) {
   pr.rt.ct.0 <- prob.neg.pool.rand(p=p, sigma=sigma, m=m, size=r+c-1, k=r*c/m, model=model, ...)
   list(pr.rt.0=pr.rt.0, pr.ct.0=pr.ct.0, pr.rt.ct.0=pr.rt.ct.0)  
 }
-  
+
+gtcorr.matrix.user <- function(clusters, p, sigma=0, se=1, sp=1, model=c('beta-binomial', 'Madsen', 'Morel-Neerchal')) {
+  bad <- FALSE
+  l <- max(clusters)
+  if (l != as.integer(l)) bad <- TRUE
+  if (l < 1) bad <- TRUE
+  for (i in 1:l) {
+    if (!(i %in% clusters)) bad <- TRUE
+  }
+  if (bad) stop("clusters should be a matrix of integers from 1 to the largest cluster number")
+
+  if (length(p)==1) p <- rep(p, l)
+  if (length(p)!=l) stop("p should have length 1 or the largest cluster number")
+  if (length(sigma)==1) sigma <- rep(sigma, l)
+  if (length(sigma)!=l) stop("sigma should have length 1 or the largest cluster number")
+  if (any(c(p, sigma, se, sp)<0) || any(c(p, sigma, se, sp) >1)) {
+    stop("p, sigma, se, and sp should be between 0 and 1")
+  }
+
+  model <- match.arg(model)
+    
+  r <- nrow(clusters)
+  c <- ncol(clusters)
+  et <- r+c
+  for (ii in 1:r) {
+    for (jj in 1:c) {
+      ricj <- 0
+      for (uu in 0:1) {
+        for (vv in 0:1) {
+          ricj <- ricj + se^(uu+vv) * (1-sp)^(2-uu-vv) * gtcorr.m.joint(ii,jj,uu,vv,clusters,p,sigma, model)
+        }
+      }
+      et <- et + ricj
+    }
+  }
+  eff <- et/(r*c)
+  eff
+}
+
+gtcorr.m.joint <- function(ii,jj,uu,vv,clusters,p,sigma, model){
+  pr0 <- pc0 <- prc0 <- 1
+  l <- length(p)
+  for (kk in 1:l){
+    mik <- sum(clusters[ii,]==kk)	# number of units in row ii from cluster kk
+    mjk <- sum(clusters[,jj]==kk)
+    mijk <- sum(clusters[ii,]==kk) + sum(clusters[-ii,jj]==kk)
+    pr0 <- pr0*prob.neg.clust(p[kk], sigma[kk], mik, model)
+    pc0 <- pc0*prob.neg.clust(p[kk], sigma[kk], mjk, model)
+    prc0 <- prc0*prob.neg.clust(p[kk], sigma[kk], mijk, model)
+  }
+  if (uu==1 & vv==1) ans <- 1-(pr0+pc0-prc0)
+  if (uu==1 & vv==0) ans <- pc0-prc0
+  if (uu==0 & vv==1) ans <- pr0-prc0
+  if (uu==0 & vv==0) ans <- prc0
+  ans
+}
 
 ###End Matrix functions###
 
@@ -263,6 +436,10 @@ prob.neg.m.random <- function(p, sigma, r, c, m, model, ...) {
 prob.neg.clust <- function(p, sigma, m, model) {
   #Returns the probability that a cluster of size m has no positive units
   q <- 1-p
+
+  if (m==0) return(1)
+
+  if (sigma==1) return(q)
     
   if (model=='beta-binomial') {
     gamma <- sigma/(1-sigma)

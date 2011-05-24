@@ -1,10 +1,12 @@
 \name{gtcorr.hierarchical}
 \alias{gtcorr.hierarchical}
 %- Also NEED an '\alias' for EACH other topic documented here.
-\title{Calculate the efficiency of hierarchical group testing procedures}
+\title{Calculate the efficiency of hierarchical group testing procedures
+for nested and random arrangements}
 \description{
 \sQuote{gtcorr.hierarchical} calculates the efficiencies of hierarchical group
-testing procedures, allowing for correlation between units and test error
+testing procedures for nested and random arrangements, allowing for
+correlation between units and test error.
 }
 \usage{
 gtcorr.hierarchical(n, m = 1, p, sigma = 0, se = 1, sp = 1, arrangement
@@ -83,9 +85,9 @@ Biometrics.
 
 %% ~Make other sections like Warning with \section{Warning }{....} ~
 
-%\seealso{
-%% ~~objects to See Also as \code{\link{help}}, ~~~
-%}
+\seealso{
+\code{\link{gtcorr.hierarchical.user}}
+}
 \examples{
 ##Plot efficiencies of a Dorfman (2 stage hierarchical) algorithm 
 ##by cluster size and sigma

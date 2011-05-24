@@ -1,2 +1,2 @@
-export(gtcorr.hierarchical, gtcorr.matrix)
+export(gtcorr.hierarchical, gtcorr.hierarchical.user,gtcorr.matrix, gtcorr.matrix.user)
        

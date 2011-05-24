@@ -1,10 +1,12 @@
 \name{gtcorr.matrix}
 \alias{gtcorr.matrix}
 %- Also NEED an '\alias' for EACH other topic documented here.
-\title{Calculate the efficiency of matrix group testing procedures}
+\title{Calculate the efficiency of matrix group testing procedures for
+  rectangular, diagonal, and random arrangements}
 \description{
 \sQuote{gtcorr.matrix} calculates the efficiencies of matrix group
-testing procedures, allowing for correlation between units and test error
+testing procedures for rectangular, diagonal, and random arrangements,
+allowing for correlation between units and test error.
 }
 \usage{
 gtcorr.matrix(r, c, m = 1, p, sigma = 0, se = 1, sp = 1, r.prime, c.prime, arrangement = c("rectangular", "diagonal", "random"), model = c("beta-binomial", "Madsen", "Morel-Neerchal"), ...)
@@ -94,9 +96,9 @@ Biometrics.
 
 %% ~Make other sections like Warning with \section{Warning }{....} ~
 
-%\seealso{
-%% ~~objects to See Also as \code{\link{help}}, ~~~
-%}
+\seealso{
+\code{\link{gtcorr.matrix.user}}
+}
 \examples{
 ##Plot efficiencies of a 16 by 16 matrix procedure by arrangement
 sigma <- seq(0,.99, length.out=100)
